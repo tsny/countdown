@@ -47,17 +47,18 @@ func main() {
 		os.Exit(0)
 	}
 	// Try parsing kitchen sink duration
-	dur, err := getKitchenTimeDuration(os.Args[1])
+	in := os.Args[len(os.Args)-1]
+	dur, err := getKitchenTimeDuration(in)
 	if err != nil {
 		// Try just seconds if there's no letters
-		i, err := strconv.Atoi(os.Args[1])
+		i, err := strconv.Atoi(in)
 		if err == nil {
 			dur = time.Duration(i) * time.Second
 		} else {
 			// Fall back to parsing as default time format
-			dur, err = time.ParseDuration(os.Args[1])
+			dur, err = time.ParseDuration(in)
 			if err != nil {
-				stderr("error: invalid duration or kitchen time: %v\n", os.Args[1])
+				stderr("error: invalid duration or kitchen time: %v\n", in)
 				os.Exit(2)
 			}
 		}
