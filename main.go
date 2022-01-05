@@ -1,26 +1,20 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	"os"
-	"time"
-
 	"github.com/nsf/termbox-go"
+	"os"
+	"strconv"
+	"time"
 )
 
 const (
 	usage = `
- countdown
-
- Usage:
-    countdown 25s
-    countdown 1m50s
-    countdown 3h40m50s
-
- Options:
-    -up : count up from zero
-
-`
+ Examples:
+    timer 25s
+    timer 1m50s
+    timer 3h40m50s`
 	tick = time.Second
 )
 
@@ -30,20 +24,42 @@ var (
 	queues         chan termbox.Event
 	startDone      bool
 	startX, startY int
+
+	message string
+	countUp bool
 )
 
-func main() {
-	if len(os.Args) < 2 || len(os.Args) > 3 {
-		stderr(usage)
-		os.Exit(2)
+func init() {
+	// This doesn't work, maybe fix it some day
+	//flag.StringVar(&message, "m", "", "Message to display next to the timer")
+	flag.BoolVar(&countUp, "up", false, "Whether to count up to the time")
+	flag.Usage = func() {
+		println("\n Flags")
+		flag.PrintDefaults()
+		println(usage)
 	}
-	timeLeft, err := getKitchenTimeDuration(os.Args[1])
+	flag.Parse()
+}
 
+func main() {
+	if len(os.Args) < 2 {
+		flag.Usage()
+		os.Exit(0)
+	}
+	// Try parsing kitchen sink duration
+	dur, err := getKitchenTimeDuration(os.Args[1])
 	if err != nil {
-		timeLeft, err = time.ParseDuration(os.Args[1])
-		if err != nil {
-			stderr("error: invalid duration or kitchen time: %v\n", os.Args[1])
-			os.Exit(2)
+		// Try just seconds if there's no letters
+		i, err := strconv.Atoi(os.Args[1])
+		if err == nil {
+			dur = time.Duration(i) * time.Second
+		} else {
+			// Fall back to parsing as default time format
+			dur, err = time.ParseDuration(os.Args[1])
+			if err != nil {
+				stderr("error: invalid duration or kitchen time: %v\n", os.Args[1])
+				os.Exit(2)
+			}
 		}
 	}
 
@@ -58,8 +74,7 @@ func main() {
 			queues <- termbox.PollEvent()
 		}
 	}()
-	countUp := len(os.Args) == 3 && os.Args[2] == "-up"
-	countdown(timeLeft, countUp)
+	countdown(dur, countUp)
 }
 
 func draw(d time.Duration) {
@@ -67,6 +82,9 @@ func draw(d time.Duration) {
 	clear()
 
 	str := format(d)
+	if message != "" {
+		str += message
+	}
 	text := toText(str)
 
 	if !startDone {
@@ -107,16 +125,14 @@ func stop() {
 	ticker.Stop()
 }
 
-func countdown(timeLeft time.Duration, countUp bool) {
+func countdown(dur time.Duration, countUp bool) {
 	var exitCode int
 
-	start(timeLeft)
-
+	start(dur)
 	if countUp {
-		timeLeft = 0
+		dur = 0
 	}
-
-	draw(timeLeft)
+	draw(dur)
 
 loop:
 	for {
@@ -130,15 +146,15 @@ loop:
 				stop()
 			}
 			if ev.Ch == 'c' || ev.Ch == 'C' {
-				start(timeLeft)
+				start(dur)
 			}
 		case <-ticker.C:
 			if countUp {
-				timeLeft += tick
+				dur += tick
 			} else {
-				timeLeft -= tick
+				dur -= tick
 			}
-			draw(timeLeft)
+			draw(dur)
 		case <-timer.C:
 			break loop
 		}

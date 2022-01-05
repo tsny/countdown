@@ -7,6 +7,7 @@ import (
 	"unicode/utf8"
 )
 
+// Symbol is a symbol
 type Symbol []string
 
 func (s Symbol) width() int {
@@ -17,6 +18,7 @@ func (s Symbol) height() int {
 	return len(s)
 }
 
+// Text is text
 type Text []Symbol
 
 func (t Text) width() int {
@@ -41,6 +43,7 @@ func toText(str string) Text {
 	return symbols
 }
 
+// Font is font
 type Font map[rune]Symbol
 
 func echo(s Symbol, startX, startY int) {
