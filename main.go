@@ -32,6 +32,36 @@ var (
 	startX, startY int
 )
 
+func main() {
+	if len(os.Args) < 2 || len(os.Args) > 3 {
+		stderr(usage)
+		os.Exit(2)
+	}
+	timeLeft, err := getKitchenTimeDuration(os.Args[1])
+
+	if err != nil {
+		timeLeft, err = time.ParseDuration(os.Args[1])
+		if err != nil {
+			stderr("error: invalid duration or kitchen time: %v\n", os.Args[1])
+			os.Exit(2)
+		}
+	}
+
+	err = termbox.Init()
+	if err != nil {
+		panic(err)
+	}
+
+	queues = make(chan termbox.Event)
+	go func() {
+		for {
+			queues <- termbox.PollEvent()
+		}
+	}()
+	countUp := len(os.Args) == 3 && os.Args[2] == "-up"
+	countdown(timeLeft, countUp)
+}
+
 func draw(d time.Duration) {
 	w, h := termbox.Size()
 	clear()
@@ -118,6 +148,7 @@ loop:
 	if exitCode != 0 {
 		os.Exit(exitCode)
 	}
+	fmt.Printf("\a")
 }
 
 func getKitchenTimeDuration(date string) (time.Duration, error) {
@@ -138,36 +169,4 @@ func getKitchenTimeDuration(date string) (time.Duration, error) {
 	duration := targetTime.Sub(originTime)
 
 	return duration, err
-}
-
-func main() {
-	if len(os.Args) < 2 || len(os.Args) > 3 {
-		stderr(usage)
-		os.Exit(2)
-	}
-
-	timeLeft, err := getKitchenTimeDuration(os.Args[1])
-
-	if err != nil {
-
-		timeLeft, err = time.ParseDuration(os.Args[1])
-		if err != nil {
-			stderr("error: invalid duration or kitchen time: %v\n", os.Args[1])
-			os.Exit(2)
-		}
-	}
-
-	err = termbox.Init()
-	if err != nil {
-		panic(err)
-	}
-
-	queues = make(chan termbox.Event)
-	go func() {
-		for {
-			queues <- termbox.PollEvent()
-		}
-	}()
-	countUp := len(os.Args) == 3 && os.Args[2] == "-up"
-	countdown(timeLeft, countUp)
 }

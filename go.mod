@@ -1,4 +1,4 @@
-module github.com/antonmedv/countdown
+module github.com/tsny/timer
 
 go 1.14
 
